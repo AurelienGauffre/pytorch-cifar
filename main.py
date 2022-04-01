@@ -30,6 +30,50 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
+
+
+
+    # Imagenette
+random_crop = transforms.RandomSizedCrop(32)
+normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
+    #
+    # # ICI FAIRE  EN SORTE QUE LA TRANSFORMATION RENVOIE UNE LISTE DE LABEL
+train_transform = transforms.Compose([
+     random_crop,
+     transforms.RandomHorizontalFlip(),
+     transforms.ToTensor(),
+     normalize,
+ ])
+ 
+test_transform = transforms.Compose([
+     random_crop,
+     transforms.RandomHorizontalFlip(),
+     transforms.ToTensor(),
+     normalize,
+ ])
+trainset =  torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im','train'),transform=train_transform)
+testset =  torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im','val'),transform=test_transform)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 print('==> Preparing data..')
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -43,13 +87,14 @@ transform_test = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
-trainset = torchvision.datasets.CIFAR10(
-    root='./data', train=True, download=True, transform=transform_train)
+#trainset = torchvision.datasets.CIFAR10(
+#    root='./data', train=True, download=True, transform=transform_train)
+#trainset = torchvision.datasets.ImageFolder()
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-testset = torchvision.datasets.CIFAR10(
-    root='./data', train=False, download=True, transform=transform_test)
+#testset = torchvision.datasets.CIFAR10(
+#    root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=args.num_workers)
 
