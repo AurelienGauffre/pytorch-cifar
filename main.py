@@ -13,15 +13,14 @@ import argparse
 
 from models import *
 from utils import progress_bar
-
+import wandb
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-parser.add_argument('--batch_size','-bs', default=128, type=int, help='batch size for training')
-parser.add_argument('--num_workers','-nw', default=2, type=int, help='num worker for train and test dataloader')
+parser.add_argument('--batch_size', '-bs', default=128, type=int, help='batch size for training')
+parser.add_argument('--num_workers', '-nw', default=2, type=int, help='num worker for train and test dataloader')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
-
 
 args = parser.parse_args()
 
@@ -32,47 +31,27 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 # Data
 
 
-
-    # Imagenette
+# Cifar
 random_crop = transforms.RandomSizedCrop(32)
 normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
-    #
-    # # ICI FAIRE  EN SORTE QUE LA TRANSFORMATION RENVOIE UNE LISTE DE LABEL
+
 train_transform = transforms.Compose([
-     random_crop,
-     transforms.RandomHorizontalFlip(),
-     transforms.ToTensor(),
-     normalize,
- ])
- 
+    random_crop,
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    normalize,
+])
+
 test_transform = transforms.Compose([
-     random_crop,
-     transforms.RandomHorizontalFlip(),
-     transforms.ToTensor(),
-     normalize,
- ])
-trainset =  torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im','train'),transform=train_transform)
-testset =  torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im','val'),transform=test_transform)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    random_crop,
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    normalize,
+])
+trainset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'train'),
+                                            transform=train_transform)
+testset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'val'),
+                                           transform=test_transform)
 
 print('==> Preparing data..')
 transform_train = transforms.Compose([
@@ -87,13 +66,13 @@ transform_test = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
-#trainset = torchvision.datasets.CIFAR10(
+# trainset = torchvision.datasets.CIFAR10(
 #    root='./data', train=True, download=True, transform=transform_train)
-#trainset = torchvision.datasets.ImageFolder()
+# trainset = torchvision.datasets.ImageFolder()
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-#testset = torchvision.datasets.CIFAR10(
+# testset = torchvision.datasets.CIFAR10(
 #    root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=100, shuffle=False, num_workers=args.num_workers)
@@ -117,7 +96,7 @@ net = ResNet18()
 # net = ShuffleNetV2(1)
 # net = EfficientNetB0()
 # net = RegNetX_200MF()
-#net = SimpleDLA()
+# net = SimpleDLA()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -159,7 +138,8 @@ def train(epoch):
         correct += predicted.eq(targets).sum().item()
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+                     % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
+    return train_loss / (len(trainloader) + 1), 100. * correct / total
 
 
 def test(epoch):
@@ -180,10 +160,10 @@ def test(epoch):
             correct += predicted.eq(targets).sum().item()
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-
+                         % (test_loss / (batch_idx + 1), 100. * correct / total, correct, total))
+        return test_loss / (len(testloader) + 1), 100. * correct / total
     # Save checkpoint.
-    acc = 100.*correct/total
+    acc = 100. * correct / total
     if acc > best_acc:
         print('Saving..')
         state = {
@@ -197,7 +177,18 @@ def test(epoch):
         best_acc = acc
 
 
-for epoch in range(start_epoch, start_epoch+200):
-    train(epoch)
-    test(epoch)
+wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
+           group='Debug')
+wandb.run.name = 'SIMPLE BASELINE'
+
+print('NB PARAMS', sum(p.numel() for p in net.parameters()))
+for epoch in range(start_epoch, start_epoch + 200):
+    train_loss, train_acc = train(epoch)
+    test_loss, test_acc = test(epoch)
     scheduler.step()
+    main_log_dic = {'epoch': epoch,
+                    'vanilla train loss': train_loss,
+                    'vanilla train accuracy': train_acc,
+                    'vanilla val loss': test_loss,
+                    'vanilla val accuracy': test_acc,
+                    }
