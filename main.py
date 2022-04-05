@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+from torch.profiler import profile, record_function, ProfilerActivity
 
 import torchvision
 import torchvision.transforms as transforms
@@ -54,17 +55,18 @@ testset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifa
                                            transform=test_transform)
 
 print('==> Preparing data..')
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
+# transform_train = transforms.Compose([
+#     #transforms.RandomCrop(32, padding=4),
+#     transforms.RandomSizedCrop(32)
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
+#
+# transform_test = transforms.Compose([
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+# ])
 
 # trainset = torchvision.datasets.CIFAR10(
 #    root='./data', train=True, download=True, transform=transform_train)
@@ -75,7 +77,7 @@ trainloader = torch.utils.data.DataLoader(
 # testset = torchvision.datasets.CIFAR10(
 #    root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
-    testset, batch_size=100, shuffle=False, num_workers=args.num_workers)
+    testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
@@ -84,8 +86,8 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 print('==> Building model..')
 # net = VGG('VGG19')
 
-#net = ResNet18()
-net = torchvision.models.resnet18(pretrained=False, num_classes=10)
+net = ResNet18()
+#net = torchvision.models.resnet18(pretrained=False, num_classes=10)
 
 # net = PreActResNet18()
 # net = GoogLeNet()
@@ -128,9 +130,15 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
+        print(
+            f"allocated:{torch.cuda.max_memory_reserved(0) / 1024 / 1024 / 1024} reserved:{torch.cuda.max_memory_reserved(0) / 1024 / 1024 / 1024} a ")
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        outputs = net(inputs)
+        with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
+            with record_function("model_inference"):
+
+                outputs = net(inputs)
+        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -186,7 +194,10 @@ wandb.run.name = 'Baseline (wo dataparallel)'
 
 print('NB PARAMS', sum(p.numel() for p in net.parameters()))
 for epoch in range(start_epoch + 1, start_epoch + 201):
+    print('starting')
+
     train_loss, train_acc = train(epoch)
+
     test_loss, test_acc = test(epoch)
     scheduler.step()
     main_log_dic = {'epoch': epoch + 1,
