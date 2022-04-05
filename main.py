@@ -131,7 +131,7 @@ def train(epoch):
     total = 0
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         print(
-            f"allocated:{torch.cuda.max_memory_reserved(0) / 1024 / 1024 / 1024} reserved:{torch.cuda.max_memory_reserved(0) / 1024 / 1024 / 1024} a ")
+            f"allocated:{torch.cuda.max_memory_allocated(0) / 1024 / 1024 / 1024} reserved:{torch.cuda.max_memory_reserved(0) / 1024 / 1024 / 1024} a ")
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
