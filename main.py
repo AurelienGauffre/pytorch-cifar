@@ -83,7 +83,10 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 # Model
 print('==> Building model..')
 # net = VGG('VGG19')
-net = ResNet18()
+
+# net = ResNet18()
+net = torchvision.models.resnet18(pretrained=False, num_classes=10)
+
 # net = PreActResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
@@ -139,7 +142,7 @@ def train(epoch):
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-    return train_loss / (len(trainloader)),   correct / total
+    return train_loss / (len(trainloader)), correct / total
 
 
 def test(epoch):
@@ -161,7 +164,7 @@ def test(epoch):
 
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (test_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-        return test_loss / (len(testloader) + 1),   correct / total
+        return test_loss / (len(testloader) + 1), correct / total
     # Save checkpoint.
     acc = 100. * correct / total
     if acc > best_acc:
@@ -182,11 +185,11 @@ wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
 wandb.run.name = 'Baseline'
 
 print('NB PARAMS', sum(p.numel() for p in net.parameters()))
-for epoch in range(start_epoch+1, start_epoch + 201):
+for epoch in range(start_epoch + 1, start_epoch + 201):
     train_loss, train_acc = train(epoch)
     test_loss, test_acc = test(epoch)
     scheduler.step()
-    main_log_dic = {'epoch': epoch+1,
+    main_log_dic = {'epoch': epoch + 1,
                     'vanilla train loss': train_loss,
                     'vanilla train accuracy': train_acc,
                     'vanilla val loss': test_loss,
