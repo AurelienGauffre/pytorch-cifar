@@ -192,3 +192,4 @@ for epoch in range(start_epoch, start_epoch + 200):
                     'vanilla val loss': test_loss,
                     'vanilla val accuracy': test_acc,
                     }
+    wandb.log(main_log_dic)
