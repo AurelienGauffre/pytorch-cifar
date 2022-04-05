@@ -139,7 +139,7 @@ def train(epoch):
 
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-    return train_loss / (len(trainloader) + 1),   correct / total
+    return train_loss / (len(trainloader)),   correct / total
 
 
 def test(epoch):
@@ -179,17 +179,18 @@ def test(epoch):
 
 wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
            group='Debug')
-wandb.run.name = 'SIMPLE BASELINE'
+wandb.run.name = 'Baseline'
 
 print('NB PARAMS', sum(p.numel() for p in net.parameters()))
-for epoch in range(start_epoch, start_epoch + 200):
+for epoch in range(start_epoch+1, start_epoch + 201):
     train_loss, train_acc = train(epoch)
     test_loss, test_acc = test(epoch)
     scheduler.step()
-    main_log_dic = {'epoch': epoch,
+    main_log_dic = {'epoch': epoch+1,
                     'vanilla train loss': train_loss,
                     'vanilla train accuracy': train_acc,
                     'vanilla val loss': test_loss,
                     'vanilla val accuracy': test_acc,
                     }
     wandb.log(main_log_dic)
+    wandb.watch(net, criterion, log="all")
