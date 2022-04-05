@@ -132,11 +132,10 @@ def train(epoch):
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
-        with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
-            with record_function("model_inference"):
 
-                outputs = net(inputs)
-        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+
+        outputs = net(inputs)
+
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
