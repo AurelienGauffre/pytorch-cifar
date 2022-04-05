@@ -84,7 +84,7 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 print('==> Building model..')
 # net = VGG('VGG19')
 
-# net = ResNet18()
+#net = ResNet18()
 net = torchvision.models.resnet18(pretrained=False, num_classes=10)
 
 # net = PreActResNet18()
@@ -101,9 +101,9 @@ net = torchvision.models.resnet18(pretrained=False, num_classes=10)
 # net = RegNetX_200MF()
 # net = SimpleDLA()
 net = net.to(device)
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
+# if device == 'cuda':
+#     net = torch.nn.DataParallel(net)
+#     cudnn.benchmark = True
 
 if args.resume:
     # Load checkpoint.
@@ -182,7 +182,7 @@ def test(epoch):
 
 wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
            group='Debug')
-wandb.run.name = 'Baseline'
+wandb.run.name = 'Baseline (wo dataparallel)'
 
 print('NB PARAMS', sum(p.numel() for p in net.parameters()))
 for epoch in range(start_epoch + 1, start_epoch + 201):
@@ -196,4 +196,4 @@ for epoch in range(start_epoch + 1, start_epoch + 201):
                     'vanilla val accuracy': test_acc,
                     }
     wandb.log(main_log_dic)
-    wandb.watch(net, criterion, log="all")
+    #wandb.watch(net, criterion, log="all")
