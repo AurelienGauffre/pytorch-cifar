@@ -34,9 +34,8 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
 
-random_crop = transforms.RandomSizedCrop(32)
-normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
-
+# random_crop = transforms.RandomSizedCrop(32)
+# normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
 # train_transform = transforms.Compose([
 #     random_crop,
 #     transforms.RandomHorizontalFlip(),
@@ -53,7 +52,7 @@ normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1
 
 
 
-transform_train = transforms.Compose([
+train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
 
     transforms.RandomHorizontalFlip(),
@@ -61,7 +60,7 @@ transform_train = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
-transform_test = transforms.Compose([
+test_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
