@@ -22,7 +22,10 @@ parser.add_argument('--batch_size', '-bs', default=128, type=int, help='batch si
 parser.add_argument('--num_workers', '-nw', default=2, type=int, help='num worker for train and test dataloader')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
-
+parser.add_argument('--cifar_binary', action='store_true',
+                    help='If true, uses the cifar dataset from torchvision')
+parser.add_argument('--wandb', action='store_false',
+                    help='wandb logging')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -31,8 +34,6 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
 
-
-# Cifar
 random_crop = transforms.RandomSizedCrop(32)
 normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
 
@@ -45,14 +46,25 @@ train_transform = transforms.Compose([
 
 test_transform = transforms.Compose([
     random_crop,
-    #transforms.RandomHorizontalFlip(),
+    # transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     normalize,
 ])
-trainset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'train'),
+
+# Cifar
+if not args.cifar_binary:
+    print('Using Cifar .png images ...')
+
+    trainset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'train'),
                                             transform=train_transform)
-testset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'val'),
-                                           transform=test_transform)
+    testset = torchvision.datasets.ImageFolder(root=os.path.join('~/datasets', 'cifar10im', 'val'),
+                                               transform=test_transform)
+else :
+    print('Using Cifar BINARIES from torchvision ...')
+    trainset = torchvision.datasets.CIFAR10(
+       root='./data', train=True, download=True, transform=train_transform)
+    testset = torchvision.datasets.CIFAR10(
+       root='./data', train=False, download=True, transform=test_transform)
 
 print('==> Preparing data..')
 # transform_train = transforms.Compose([
@@ -68,14 +80,11 @@ print('==> Preparing data..')
 #     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 # ])
 
-# trainset = torchvision.datasets.CIFAR10(
-#    root='./data', train=True, download=True, transform=transform_train)
-# trainset = torchvision.datasets.ImageFolder()
+
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-# testset = torchvision.datasets.CIFAR10(
-#    root='./data', train=False, download=True, transform=transform_test)
+
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
@@ -184,10 +193,10 @@ def test(epoch):
         torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
 
-
-wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
-           group='Debug')
-wandb.run.name = 'Baseline (wo dataparallel)'
+if args.wandb :
+    wandb.init(project='NAS-SSL-MTL', entity='aureliengauffre',
+               group='Debug')
+    wandb.run.name = 'Cifar10 VS Cifar10im'
 
 print('NB PARAMS', sum(p.numel() for p in net.parameters()))
 for epoch in range(start_epoch + 1, start_epoch + 201):
@@ -203,5 +212,6 @@ for epoch in range(start_epoch + 1, start_epoch + 201):
                     'vanilla val loss': test_loss,
                     'vanilla val accuracy': test_acc,
                     }
-    wandb.log(main_log_dic)
+    if args.wandb:
+        wandb.log(main_log_dic)
     #wandb.watch(net, criterion, log="all")
