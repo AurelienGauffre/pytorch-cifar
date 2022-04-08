@@ -44,7 +44,7 @@ train_transform = transforms.Compose([
 ])
 
 test_transform = transforms.Compose([
-    random_crop,
+#   random_crop,
     # transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     normalize,
